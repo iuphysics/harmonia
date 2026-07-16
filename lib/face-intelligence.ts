@@ -1404,14 +1404,14 @@ export function createInteractiveMorphPlan(analysis: FaceAnalysis, requestedMix:
     });
   };
 
-  add("jaw-width", "Jaw", -0.62 * mix.harmony, "harmony", 0.045, "Interactive facial refinement.");
-  add("nose-width", "Nose", -0.52 * mix.harmony, "harmony", 0.022, "Interactive feature refinement.");
-  add("mouth-width", "Lips", 0.24 * mix.harmony, "harmony", 0.022, "Interactive feature balance.");
-  add("jaw-width", "Jaw", -0.25 * mix.dimorphism, "dimorphism", 0.045, "Interactive lower-face definition.");
-  add("chin-length", "Chin", 0.72 * mix.dimorphism, "dimorphism", 0.035, "Interactive chin definition.");
-  add("brow-height", "Brows", -0.5 * mix.dimorphism, "dimorphism", 0.016, "Interactive brow definition.");
+  add("jaw-width", "Jaw", -0.7 * mix.harmony, "harmony", 0.065, "Interactive facial refinement.");
+  add("nose-width", "Nose", -0.62 * mix.harmony, "harmony", 0.032, "Interactive feature refinement.");
+  add("mouth-width", "Lips", 0.3 * mix.harmony, "harmony", 0.03, "Interactive feature balance.");
+  add("jaw-width", "Jaw", -0.3 * mix.dimorphism, "dimorphism", 0.065, "Interactive lower-face definition.");
+  add("chin-length", "Chin", 0.82 * mix.dimorphism, "dimorphism", 0.05, "Interactive chin definition.");
+  add("brow-height", "Brows", -0.58 * mix.dimorphism, "dimorphism", 0.024, "Interactive brow definition.");
   if (analysis.pose.class === "frontal") {
-    add("paired-alignment", "Symmetry", 0.9 * mix.symmetry, "symmetry", 0.015, "Interactive paired alignment.");
+    add("paired-alignment", "Symmetry", 0.9 * mix.symmetry, "symmetry", 0.022, "Interactive paired alignment.");
   }
 
   plan.actions = [...actions.values()]

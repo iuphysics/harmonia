@@ -775,6 +775,9 @@ function planIsSafe(
     const normalizedMinimumEdge = Math.min(...sourceEdges) / Math.max(minimumImageDimension, 1);
     const projectedSliver = normalizedArea < 0.000001 || normalizedMinimumEdge < 0.0015;
     if (projectedSliver) {
+      // Projected slivers can be only a fraction of a pixel wide even on a
+      // clean frontal face. Judge their neighboring motion at a photographic
+      // scale so a smooth contour edit is not capped by one degenerate edge.
       const differentialLimit = clamp(minimumImageDimension * 0.0024, 0.35, 2.8);
       const safe = [[a, b], [b, c], [c, a]].every(([start, end]) => {
         const startDx = target[start].x - source[start].x;
@@ -872,11 +875,9 @@ export function morphImage(
     const t = clamp(value, 0, 1);
     return t * t * (3 - 2 * t);
   };
-  // The old 100% request overran the first geometric safety cliff: several
-  // regions backed off more than the added input, so maximum looked weaker
-  // than 80%. Map the visible range to the strongest verified-safe amplitude,
-  // with a smooth extra reserve through mild yaw where projected slivers are
-  // most sensitive. True profiles use their separate conservative path.
+  // Keep the visible control honest: 100% now requests the full bounded plan.
+  // Mild yaw retains a small reserve for projected slivers, while the regional
+  // binary-search validator remains the final authority on safe amplitude.
   const mildYawReserve = isProfilePlan
     ? 0
     : smoothUnit((morphYawSignal - 0.08) / 0.1) *
@@ -965,6 +966,9 @@ export function morphImage(
       );
       displacementCandidates.push({
         displacements: stabilizeProjectedSlivers(analyticRaw, mesh),
+        // This is a smooth whole-lower-face field rather than independent
+        // local handles. Keep foldover and differential checks, but do not
+        // apply unstable affine-stretch tests to near-zero projected slivers.
         strictProjectedSlivers: true,
       });
     }
@@ -1095,6 +1099,9 @@ export function morphImage(
     if (!layerContext) throw new Error("Canvas rendering is unavailable in this browser.");
     layerContext.imageSmoothingEnabled = true;
     layerContext.imageSmoothingQuality = "high";
+    // Give the After image an immediately legible finish in addition to the
+    // structural warp. Restrict it to the anchored face layer so hair,
+    // clothing, and background remain unchanged.
     // Render the complete anchored face region once. Drawing only moved triangles
     // over the original would leave duplicate contours when a feature contracts.
     layerContext.save();
@@ -1115,6 +1122,54 @@ export function morphImage(
     }
     layerContext.restore();
     ctx.drawImage(layer, 0, 0);
+
+    // Add a feathered face-only finish after geometry is rendered. The exact
+    // face boundary remains the hard outer clip, while the soft inner mask
+    // avoids a visible tonal seam across the forehead or cheeks.
+    const finish = document.createElement("canvas");
+    finish.width = width;
+    finish.height = height;
+    const finishContext = finish.getContext("2d");
+    if (finishContext && typeof finishContext.createRadialGradient === "function") {
+      finishContext.filter = [
+        `contrast(${1 + requestedStrength * 0.22})`,
+        `saturate(${1 + requestedStrength * 0.14})`,
+        `brightness(${1 + requestedStrength * 0.035})`,
+      ].join(" ");
+      finishContext.drawImage(output, 0, 0);
+      finishContext.filter = "none";
+      const mask = document.createElement("canvas");
+      mask.width = width;
+      mask.height = height;
+      const maskContext = mask.getContext("2d");
+      if (!maskContext) throw new Error("Canvas rendering is unavailable in this browser.");
+      maskContext.beginPath();
+      mesh.boundary.forEach((point, index) => {
+        if (index === 0) maskContext.moveTo(point.x, point.y);
+        else maskContext.lineTo(point.x, point.y);
+      });
+      maskContext.closePath();
+      maskContext.clip();
+      const xs = mesh.boundary.map((point) => point.x);
+      const ys = mesh.boundary.map((point) => point.y);
+      const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+      const centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+      const radiusX = Math.max((Math.max(...xs) - Math.min(...xs)) / 2, 1);
+      const radiusY = Math.max((Math.max(...ys) - Math.min(...ys)) / 2, 1);
+      maskContext.save();
+      maskContext.translate(centerX, centerY);
+      maskContext.scale(1, radiusY / radiusX);
+      const gradient = maskContext.createRadialGradient(0, 0, 0, 0, 0, radiusX);
+      gradient.addColorStop(0, "rgba(255,255,255,1)");
+      gradient.addColorStop(0.72, "rgba(255,255,255,0.96)");
+      gradient.addColorStop(1, "rgba(255,255,255,0)");
+      maskContext.fillStyle = gradient;
+      maskContext.fillRect(-radiusX, -radiusX, radiusX * 2, radiusX * 2);
+      maskContext.restore();
+      finishContext.globalCompositeOperation = "destination-in";
+      finishContext.drawImage(mask, 0, 0);
+      ctx.drawImage(finish, 0, 0);
+    }
   }
 
   return {
