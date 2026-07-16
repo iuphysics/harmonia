@@ -3,7 +3,7 @@
 import { ChangeEvent, CSSProperties, DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   analyzeFace,
-  createMorphPlan,
+  createInteractiveMorphPlan,
   DEFAULT_DIRECTION_MIX,
   detectFace,
   drawLandmarkOverlay,
@@ -48,20 +48,20 @@ const DIRECTION_OPTIONS: Array<{
   {
     id: "harmony",
     number: "01",
-    label: "Harmony",
-    description: "Balances connected proportions without chasing a single template.",
+    label: "Refine",
+    description: "Slims and balances the lower face, nose, and mouth.",
   },
   {
     id: "symmetry",
     number: "02",
-    label: "Symmetry",
-    description: "Softens only confident paired drift when the pose supports it.",
+    label: "Balance",
+    description: "Gently aligns paired features in a straight-on photo.",
   },
   {
     id: "dimorphism",
     number: "03",
-    label: "Angularity",
-    description: "Strengthens jaw, chin and brow definition within your existing structure.",
+    label: "Definition",
+    description: "Adds a sharper jaw, chin, and brow shape.",
   },
 ];
 
@@ -475,7 +475,7 @@ export default function Home() {
     const originalCanvas = originalRef.current;
     if (!source || !observation || !faceAnalysis || !resultCanvas || !originalCanvas) return;
 
-    const nextPlan = createMorphPlan(faceAnalysis, directionMix);
+    const nextPlan = createInteractiveMorphPlan(faceAnalysis, directionMix);
     const transformed = morphImage(source, observation.landmarks, nextPlan, strength);
     planRef.current = nextPlan;
     exportCanvasRef.current = transformed.canvas;
@@ -779,6 +779,7 @@ export default function Home() {
     .map((option) => option.label);
 
   const updateDirection = (direction: DirectionKey, value: number) => {
+    setShowOriginal(false);
     setDirectionMix((current: DirectionMix) => ({ ...current, [direction]: value }));
   };
 
@@ -796,11 +797,11 @@ export default function Home() {
         </nav>
       </header>
 
-      <section className="hero" id="top">
+      {status !== "ready" && <section className="hero" id="top">
         <div className="eyebrow"><span>PIXEL-ONLY MORPHING</span><span className="eyebrow-line" /></div>
         <h1>Scan. Measure.<br /><em>Harmonize.</em></h1>
         <p className="hero-copy">Harmony, Symmetry and Angularity are blended into one personalized plan that reshapes your source pixels only.</p>
-      </section>
+      </section>}
 
       <section className={`studio ${status === "ready" ? "studio-active" : ""}`} aria-label="Portrait editor">
         <div className="editor-stage">
@@ -859,10 +860,10 @@ export default function Home() {
 
         <aside className="control-panel">
           <div className="panel-heading">
-            <div><span className="step-number">01</span><h2>Blend directions</h2></div>
-            {status === "ready" && <span className="ready-badge">V2 map ready</span>}
+            <div><span className="step-number">01</span><h2>Adjust your look</h2></div>
+            {status === "ready" && <span className="ready-badge">Live preview</span>}
           </div>
-          <p className="mode-intro">Blend all three signals into one personalized morph. The planner adapts their impact to your pose, facial structure, confidence and editable regions.</p>
+          <p className="mode-intro">Move any slider and your After photo updates instantly. Tap Before anytime to compare.</p>
           <div className="direction-stack">
             {DIRECTION_OPTIONS.map((option) => (
               <article className={`direction-control direction-${option.id}`} key={option.id}>
@@ -891,7 +892,7 @@ export default function Home() {
 
           <div className="divider" />
           <div className="strength-row">
-            <div><span className="step-number">02</span><h3>Adaptive strength</h3></div>
+            <div><span className="step-number">02</span><h3>Overall change</h3></div>
             <output>{strength}%</output>
           </div>
           <input
@@ -901,10 +902,10 @@ export default function Home() {
             min="0"
             max="100"
             value={strength}
-            onChange={(event) => setStrength(Number(event.target.value))}
+            onChange={(event) => { setShowOriginal(false); setStrength(Number(event.target.value)); }}
             aria-label="Adaptive edit strength"
           />
-          <div className="range-labels"><span>Subtle</span><span>High impact</span></div>
+          <div className="range-labels"><span>Original</span><span>Strong</span></div>
           <p className="impact-note"><strong>High settings broaden supported changes.</strong> Foldover, feature-crossing and outer-boundary guardrails stay hard.</p>
 
           {status === "ready" && (
@@ -983,14 +984,14 @@ export default function Home() {
         </aside>
       </section>
 
-      <section className="principles" id="how">
+      {status !== "ready" && <section className="principles" id="how">
         <div className="principle-title"><span>BUILT DIFFERENT</span><h2>No generation.<br />Just careful geometry.</h2></div>
         <div className="principle-list">
           <article><span>01</span><div><h3>Your pixels stay yours</h3><p>The image is processed inside your browser. Nothing is sent to a server or retained.</p></div></article>
           <article><span>02</span><div><h3>Identity stays intact</h3><p>A bounded mesh moves existing pixels only. No new skin, hair, shadows or background.</p></div></article>
           <article><span>03</span><div><h3>Personalized, then protected</h3><p>Every adjustment responds to your own structure. Pose validity, editability and mesh safety can still weaken—or reject—a change before pixels move.</p></div></article>
         </div>
-      </section>
+      </section>}
 
       <footer><span>HARMONIA / V2</span><p>A creative geometry tool. Results are subjective—not a score or measure of your worth.</p><span>PRIVATE BY DEFAULT</span></footer>
       <input ref={fileInputRef} className="visually-hidden" type="file" accept="image/jpeg,image/png,image/webp" onChange={onFileChange} />

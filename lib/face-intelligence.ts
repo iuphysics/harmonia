@@ -1367,6 +1367,60 @@ export function createMorphPlan(analysis: FaceAnalysis, requestedMix: DirectionM
   };
 }
 
+// The evidence planner remains the personalized base. This editor-facing layer
+// guarantees that a non-zero control also has a bounded visible effect, so a
+// face already inside every broad evidence band does not make the UI feel inert.
+export function createInteractiveMorphPlan(analysis: FaceAnalysis, requestedMix: DirectionMix): MorphPlan {
+  const plan = createMorphPlan(analysis, requestedMix);
+  if (analysis.pose.class === "unsupported") return plan;
+  const mix = {
+    harmony: mixUnit(requestedMix.harmony),
+    symmetry: mixUnit(requestedMix.symmetry),
+    dimorphism: mixUnit(requestedMix.dimorphism),
+  };
+  const editability = new Map(analysis.regionEditability.map((item) => [item.region, item]));
+  const actions = new Map(plan.actions.map((action) => [action.primitive, { ...action }]));
+  const add = (
+    primitive: MorphPrimitive,
+    region: FaceRegion,
+    amount: number,
+    direction: keyof DirectionMix,
+    maxDisplacement: number,
+    rationale: string,
+  ) => {
+    if (Math.abs(amount) < 0.01) return;
+    const regionState = editability.get(region);
+    if (!regionState?.editable || analysis.expression.blockedRegions.includes(region)) return;
+    const existing = actions.get(primitive);
+    actions.set(primitive, {
+      primitive,
+      region,
+      amount: clamp((existing?.amount ?? 0) + amount, -0.9, 0.9),
+      confidence: existing?.confidence ?? analysis.overallConfidence,
+      editability: regionState.score,
+      maxDisplacement: Math.max(existing?.maxDisplacement ?? 0, maxDisplacement),
+      directions: [...new Set([...(existing?.directions ?? []), direction])],
+      rationale: existing ? `${existing.rationale} ${rationale}` : rationale,
+    });
+  };
+
+  add("jaw-width", "Jaw", -0.62 * mix.harmony, "harmony", 0.045, "Interactive facial refinement.");
+  add("nose-width", "Nose", -0.52 * mix.harmony, "harmony", 0.022, "Interactive feature refinement.");
+  add("mouth-width", "Lips", 0.24 * mix.harmony, "harmony", 0.022, "Interactive feature balance.");
+  add("jaw-width", "Jaw", -0.25 * mix.dimorphism, "dimorphism", 0.045, "Interactive lower-face definition.");
+  add("chin-length", "Chin", 0.72 * mix.dimorphism, "dimorphism", 0.035, "Interactive chin definition.");
+  add("brow-height", "Brows", -0.5 * mix.dimorphism, "dimorphism", 0.016, "Interactive brow definition.");
+  if (analysis.pose.class === "frontal") {
+    add("paired-alignment", "Symmetry", 0.9 * mix.symmetry, "symmetry", 0.015, "Interactive paired alignment.");
+  }
+
+  plan.actions = [...actions.values()]
+    .filter((action) => Math.abs(action.amount) >= 0.01)
+    .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
+  plan.selectedCandidate = plan.actions.length ? "full" : "identity";
+  return plan;
+}
+
 export function semanticOverlayIndices(landmarkCount: number) {
   return [...new Set(SEMANTIC_LANDMARKS.flatMap((definition) => {
     if (definition.meshIndex < landmarkCount) return [definition.meshIndex];

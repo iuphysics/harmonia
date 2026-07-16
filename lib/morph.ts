@@ -7,6 +7,7 @@ import {
   SEMANTIC_LANDMARK_COUNT,
   SEMANTIC_LANDMARKS,
   analyzeFace,
+  createInteractiveMorphPlan,
   createMorphPlan,
   semanticOverlayIndices,
   type DirectionMix,
@@ -25,6 +26,7 @@ export {
   SEMANTIC_LANDMARK_COUNT,
   SEMANTIC_LANDMARKS,
   analyzeFace,
+  createInteractiveMorphPlan,
   createMorphPlan,
 };
 export type { DirectionMix, FaceAnalysis, FaceObservation, MorphPlan, PlannerEvidenceFamily, Point };

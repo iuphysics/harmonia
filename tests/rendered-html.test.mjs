@@ -31,13 +31,13 @@ test("renders the V2 blended Harmonia studio", async () => {
 
   assert.match(html, /<title>Harmonia — Pixel-only portrait morphing<\/title>/i);
   assert.match(html, /Scan your face/);
-  assert.match(html, /Blend directions/);
-  assert.match(html, /Harmony direction weight/);
-  assert.match(html, /Symmetry direction weight/);
-  assert.match(html, /Angularity direction weight/);
+  assert.match(html, /Adjust your look/);
+  assert.match(html, /Refine direction weight/);
+  assert.match(html, /Balance direction weight/);
+  assert.match(html, /Definition direction weight/);
   assert.match(html, /One personalized plan/);
-  assert.match(html, /Adaptive strength/);
-  assert.match(html, /High impact/);
+  assert.match(html, /Overall change/);
+  assert.match(html, /Strong/);
   assert.match(html, /Start camera/);
   assert.match(html, /Export exact PNG/);
   assert.match(html, /Never uploaded/);
@@ -72,7 +72,7 @@ test("ships the local detector and fixed-topology pixel warp", async () => {
   assert.match(engine, /maximumStretch \/ Math\.max\(minimumStretch/);
   assert.match(engine, /candidateScale/);
 
-  assert.match(page, /createMorphPlan/);
+  assert.match(page, /createInteractiveMorphPlan/);
   assert.match(page, /morphImage/);
   assert.match(page, /getUserMedia/);
   assert.match(page, /freezeMirroredFrame/);
@@ -113,7 +113,7 @@ test("defines the versioned V2 facial intelligence contract", async () => {
 
   assert.match(page, /type DirectionMix/);
   assert.match(page, /directionMix/);
-  assert.match(page, /Blend directions/);
+  assert.match(page, /Adjust your look/);
   assert.match(page, /semantic anchors/);
   assert.match(page, /derived measures/);
   assert.match(page, /valid for pose/);
