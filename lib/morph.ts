@@ -1131,13 +1131,24 @@ export function morphImage(
     finish.height = height;
     const finishContext = finish.getContext("2d");
     if (finishContext && typeof finishContext.createRadialGradient === "function") {
+      const editorialIntensity = clamp(plan.editorialIntensity ?? 0);
+      const finishStrength = requestedStrength * (0.3 + editorialIntensity * 0.7);
       finishContext.filter = [
-        `contrast(${1 + requestedStrength * 0.22})`,
-        `saturate(${1 + requestedStrength * 0.14})`,
-        `brightness(${1 + requestedStrength * 0.035})`,
+        `contrast(${1 + finishStrength * 0.22})`,
+        `saturate(${1 + finishStrength * 0.14})`,
+        `brightness(${1 + finishStrength * 0.035})`,
       ].join(" ");
       finishContext.drawImage(output, 0, 0);
       finishContext.filter = "none";
+      if (editorialIntensity > 0.01) {
+        // A light low-frequency blend softens small distractions without
+        // erasing the original skin texture or redrawing any anatomy.
+        finishContext.globalAlpha = editorialIntensity * 0.16;
+        finishContext.filter = `blur(${(editorialIntensity * 1.15).toFixed(2)}px) brightness(1.025)`;
+        finishContext.drawImage(output, 0, 0);
+        finishContext.globalAlpha = 1;
+        finishContext.filter = "none";
+      }
       const mask = document.createElement("canvas");
       mask.width = width;
       mask.height = height;

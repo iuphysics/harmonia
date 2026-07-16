@@ -144,6 +144,8 @@ export type MorphPlan = {
   candidateCount: number;
   selectedCandidate: "identity" | "light" | "balanced" | "full";
   directionContributions: DirectionMix;
+  /** Coordinated high-fashion finish unlocked when all editor directions are high. */
+  editorialIntensity?: number;
 };
 
 export type AnalysisOptions = {
@@ -1378,6 +1380,9 @@ export function createInteractiveMorphPlan(analysis: FaceAnalysis, requestedMix:
     symmetry: mixUnit(requestedMix.symmetry),
     dimorphism: mixUnit(requestedMix.dimorphism),
   };
+  const editorialIntensity = clamp(
+    (Math.min(mix.harmony, mix.symmetry, mix.dimorphism) - 0.65) / 0.35,
+  );
   const editability = new Map(analysis.regionEditability.map((item) => [item.region, item]));
   const actions = new Map(plan.actions.map((action) => [action.primitive, { ...action }]));
   const add = (
@@ -1413,11 +1418,19 @@ export function createInteractiveMorphPlan(analysis: FaceAnalysis, requestedMix:
   if (analysis.pose.class === "frontal") {
     add("paired-alignment", "Symmetry", 0.9 * mix.symmetry, "symmetry", 0.022, "Interactive paired alignment.");
   }
+  // When every direction is deliberately high, blend them as one editorial
+  // look rather than three unrelated corrections.
+  add("jaw-width", "Jaw", -0.18 * editorialIntensity, "harmony", 0.045, "Editorial contour blend.");
+  add("chin-length", "Chin", 0.18 * editorialIntensity, "dimorphism", 0.035, "Editorial lower-face blend.");
+  add("nose-width", "Nose", -0.12 * editorialIntensity, "harmony", 0.022, "Editorial center-face blend.");
+  add("mouth-width", "Lips", 0.08 * editorialIntensity, "harmony", 0.022, "Editorial feature balance.");
+  add("brow-height", "Brows", -0.12 * editorialIntensity, "dimorphism", 0.016, "Editorial eye-frame definition.");
 
   plan.actions = [...actions.values()]
     .filter((action) => Math.abs(action.amount) >= 0.01)
     .sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount));
   plan.selectedCandidate = plan.actions.length ? "full" : "identity";
+  plan.editorialIntensity = editorialIntensity;
   return plan;
 }
 
