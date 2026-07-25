@@ -1,6 +1,6 @@
 # Harmonia V2
 
-Public app: [https://krishnatheaverage.github.io/harmonia/](https://iuphysics.github.io/harmonia/)
+Public app: https://iuphysics.github.io/harmonia/
 
 Harmonia is a private, browser-based portrait reshaping studio. It analyzes one
 clear face, proposes an adaptive combination of Harmony, Symmetry, and
